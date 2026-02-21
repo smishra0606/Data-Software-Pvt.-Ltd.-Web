@@ -152,45 +152,20 @@ export const getMe = async (req, res, next) => {
 // @access  Public
 export const googleAuth = async (req, res, next) => {
   try {
-    // FIX: Look for data in req.user (Passport), req.query (Redirects), or req.body
-    const name = req.user?.displayName || req.query?.name || req.body?.name;
-    const email = req.user?.emails?.[0].value || req.query?.email || req.body?.email;
-    const profileImage = req.user?.photos?.[0].value || req.query?.profileImage || req.body?.profileImage;
-    const googleId = req.user?.id || req.query?.googleId || req.body?.googleId;
+    // Passport places the authenticated user in req.user
+    const userFromPassport = req.user;
 
-    // Check if user data exists to prevent "User validation failed" error
-    if (!name || !email) {
-      console.warn("⚠️ Google Auth: Required profile data (name/email) is missing.");
+    if (!userFromPassport) {
       return res.status(400).json({
         success: false,
-        message: "Could not retrieve your name or email from Google.",
+        message: "Google Auth failed: No user data received from Passport."
       });
     }
 
-    // Check if user exists
-    let user = await User.findOne({ email });
+    // Generate the token using the ID of the user Passport just found or created
+    const token = generateToken(userFromPassport._id);
 
-    if (!user) {
-      // Register new user with secure random password
-      user = await User.create({
-        name,
-        email,
-        password: crypto.randomBytes(32).toString('hex'), 
-        profileImage,
-        googleId, 
-      });
-    } else {
-      // Update the existing user's Google ID if it's not set
-      if (!user.googleId) {
-        user.googleId = googleId;
-        await user.save();
-      }
-    }
-
-    // Generate token
-    const token = generateToken(user._id);
-
-    // FIX: Redirect user back to frontend with the token in the URL
+    // Redirect back to your frontend with the token
     const clientUrl = process.env.CLIENT_URL || 'https://dspltechnologies.com';
     return res.redirect(`${clientUrl}/auth-success?token=${token}`);
 
@@ -202,7 +177,6 @@ export const googleAuth = async (req, res, next) => {
     });
   }
 };
-
 // @desc    Request password reset
 // @route   POST /api/auth/forgot-password
 // @access  Public
