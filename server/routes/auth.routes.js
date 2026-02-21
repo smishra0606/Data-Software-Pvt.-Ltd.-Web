@@ -1,5 +1,5 @@
 import express from "express";
-import passport from 'passport'; // Add this import
+import passport from 'passport';
 import { 
   register, 
   login, 
@@ -8,22 +8,55 @@ import {
   forgotPassword, 
   resetPassword 
 } from "../controllers/auth.controller.js";
+import { protect } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// ... register and login routes ...
+/**
+ * @desc    Register user
+ * @route   POST /api/auth/register
+ */
+router.post("/register", register);
 
-// GET /api/auth/google
-// This triggers the Google login screen
+/**
+ * @desc    Login user
+ * @route   POST /api/auth/login
+ */
+router.post("/login", login);
+
+/**
+ * @desc    Get current logged in user
+ * @route   GET /api/auth/me
+ * @access  Private
+ */
+// This was the missing link!
+router.get("/me", protect, getMe); 
+
+/**
+ * @desc    Google OAuth Login
+ * @route   GET /api/auth/google
+ */
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
-// GET /api/auth/google/callback
-// This handles the return from Google and calls your googleAuth controller
+/**
+ * @desc    Google OAuth Callback
+ * @route   GET /api/auth/google/callback
+ */
 router.get("/google/callback", 
   passport.authenticate("google", { session: false, failureRedirect: '/login' }), 
   googleAuth 
 );
 
-// ... other routes ...
+/**
+ * @desc    Forgot Password
+ * @route   POST /api/auth/forgotpassword
+ */
+router.post("/forgotpassword", forgotPassword);
+
+/**
+ * @desc    Reset Password
+ * @route   PUT /api/auth/resetpassword/:resettoken
+ */
+router.put("/resetpassword/:resettoken", resetPassword);
 
 export default router;
