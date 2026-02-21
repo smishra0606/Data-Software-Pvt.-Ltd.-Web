@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { FcGoogle } from "react-icons/fc"; // You may need to: npm install react-icons
+import { LogIn } from "lucide-react"; // Use an icon you already have
 
 interface GoogleLoginProps {
   text?: string;
@@ -17,9 +17,7 @@ const GoogleLoginButton = ({
   const handleGoogleLogin = () => {
     setIsLoading(true);
     try {
-      // 1. We redirect the user to YOUR backend login route
-      // 2. This route triggers the Passport.js / Google Auth flow
-      // 3. This bypasses the CORS 'Access-Control-Allow-Origin' error
+      // This performs the direct redirect to bypass CORS
       window.location.href = "https://data-software-pvt-ltd-web.onrender.com/api/auth/google";
     } catch (error) {
       console.error("Google redirect error:", error);
@@ -39,7 +37,7 @@ const GoogleLoginButton = ({
       {isLoading ? (
         <span className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></span>
       ) : (
-        <FcGoogle className="h-5 w-5" />
+        <LogIn className="h-5 w-5" /> 
       )}
       {text}
     </Button>
