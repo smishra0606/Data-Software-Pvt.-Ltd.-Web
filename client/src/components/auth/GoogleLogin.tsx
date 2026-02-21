@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { KeyRoundIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { GoogleLogin } from "@react-oauth/google";
+import { FcGoogle } from "react-icons/fc"; // You may need to: npm install react-icons
 
 interface GoogleLoginProps {
   text?: string;
@@ -15,43 +13,37 @@ const GoogleLoginButton = ({
   disabled = false,
 }: GoogleLoginProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const { googleLogin } = useAuth();
+
+  const handleGoogleLogin = () => {
+    setIsLoading(true);
+    try {
+      // 1. We redirect the user to YOUR backend login route
+      // 2. This route triggers the Passport.js / Google Auth flow
+      // 3. This bypasses the CORS 'Access-Control-Allow-Origin' error
+      window.location.href = "https://data-software-pvt-ltd-web.onrender.com/api/auth/google";
+    } catch (error) {
+      console.error("Google redirect error:", error);
+      toast.error("Could not reach the authentication server");
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <GoogleLogin
-      onSuccess={async (credentialResponse) => {
-        setIsLoading(true);
-        try {
-          const decodedToken = parseJwt(credentialResponse.credential);
-          await googleLogin({
-            name: decodedToken.name,
-            email: decodedToken.email,
-            profileImage: decodedToken.picture,
-            googleId: decodedToken.sub,
-          });
-
-          toast.success("Google sign-in successful!");
-        } catch (error) {
-          console.error("Google authentication error:", error);
-          toast.error("Google authentication failed");
-        } finally {
-          setIsLoading(false);
-        }
-      }}
-      onError={() => {
-        toast.error("Google sign-in failed. Please try again.");
-      }}
-    />
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full py-6 flex items-center justify-center gap-2"
+      onClick={handleGoogleLogin}
+      disabled={disabled || isLoading}
+    >
+      {isLoading ? (
+        <span className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></span>
+      ) : (
+        <FcGoogle className="h-5 w-5" />
+      )}
+      {text}
+    </Button>
   );
-};
-
-// ✅ Helper function to decode JWT token from Google
-const parseJwt = (token: string) => {
-  try {
-    return JSON.parse(atob(token.split(".")[1]));
-  } catch (e) {
-    return null;
-  }
 };
 
 export default GoogleLoginButton;
