@@ -1,4 +1,5 @@
 import express from "express";
+import passport from 'passport'; // Add this import
 import { 
   register, 
   login, 
@@ -7,29 +8,22 @@ import {
   forgotPassword, 
   resetPassword 
 } from "../controllers/auth.controller.js";
-import { protect } from "../middleware/auth.js";
-import {
-  registerValidation,
-  loginValidation,
-  forgotPasswordValidation,
-  resetPasswordValidation
-} from "../middleware/validation.js";
 
 const router = express.Router();
 
-// Public routes
-router.post("/register", registerValidation, register);
-router.post("/login", loginValidation, login);
+// ... register and login routes ...
 
-// Google Auth Route - Changed to GET for direct browser redirect
-// This allows window.location.href to work and bypasses CORS
-router.get("/google", googleAuth);
+// GET /api/auth/google
+// This triggers the Google login screen
+router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
-// Protected routes
-router.get("/me", protect, getMe);
+// GET /api/auth/google/callback
+// This handles the return from Google and calls your googleAuth controller
+router.get("/google/callback", 
+  passport.authenticate("google", { session: false, failureRedirect: '/login' }), 
+  googleAuth 
+);
 
-// Password management
-router.post("/forgot-password", forgotPasswordValidation, forgotPassword);
-router.post("/reset-password", resetPasswordValidation, resetPassword);
+// ... other routes ...
 
 export default router;

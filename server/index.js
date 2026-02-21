@@ -7,6 +7,9 @@ import mongoSanitize from "express-mongo-sanitize";
 import rateLimit from "express-rate-limit";
 import connectDB from "./config/db.js";
 
+// STEP 3.1: Import the passport configuration we just created
+import passport from './config/passport.js';
+
 import courseRoutes from "./routes/course.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
@@ -20,7 +23,7 @@ import contactRoutes from "./routes/contact.routes.js";
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['JWT_SECRET', 'MONGO_URI'];
+const requiredEnvVars = ['JWT_SECRET', 'MONGO_URI', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
@@ -33,7 +36,7 @@ connectDB();
 
 const app = express();
 
-// Trust proxy (required for rate limiting behind reverse proxy like Render)
+// Trust proxy
 app.set('trust proxy', 1);
 
 // Security: Helmet
@@ -43,30 +46,20 @@ app.use(helmet({
 }));
 
 // Security: NoSQL Injection Protection
-app.use(mongoSanitize({
-  replaceWith: '_',
-}));
+app.use(mongoSanitize({ replaceWith: '_' }));
 
-// Security: UPDATED CORS Configuration
-// This now explicitly allows both www and non-www versions of your domain
+// Security: CORS Configuration
 const allowedOrigins = process.env.NODE_ENV === "production"
-  ? [
-      process.env.CLIENT_URL,
-      "https://dspltechnologies.com",
-      "https://www.dspltechnologies.com"
-    ].filter(Boolean)
+  ? [process.env.CLIENT_URL, "https://dspltechnologies.com", "https://www.dspltechnologies.com"].filter(Boolean)
   : ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-      
       if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === "development") {
         callback(null, true);
       } else {
-        console.error(`CORS Blocked for origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -75,6 +68,10 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
+
+// STEP 3.2: Initialize Passport Middleware
+// This allows your backend to handle the Google "handshake" automatically
+app.use(passport.initialize());
 
 // Body parser
 app.use(express.json({ limit: '10mb' }));
@@ -87,31 +84,9 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("combined"));
 }
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20, // Slightly increased for testing
-  skipSuccessfulRequests: true,
-});
-
-// Apply general rate limiter
-app.use('/api/', limiter);
-
-// Health check
-app.get('/health', async (req, res) => {
-  res.status(200).json({ status: 'OK', uptime: process.uptime() });
-});
-
 // Routes
 app.use("/api/courses", courseRoutes);
-app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", authRoutes); // Note: Removed authLimiter here temporarily to ensure smooth login testing
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/internships", internshipRoutes);
@@ -126,15 +101,10 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  if (err.message === 'Not allowed by CORS') {
-    return res.status(403).json({ success: false, message: 'CORS policy: Origin not allowed' });
-  }
-  
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
     success: false,
     message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 

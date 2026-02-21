@@ -6,10 +6,16 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "cd client && npm run dev",
-    "dev:server": "cd server && node index.js",
+    "dev:server": "cd server && npm run dev",
     "install:all": "npm install && cd client && npm install && cd ../server && npm install",
     "build": "cd client && npm run build",
-    "start": "cd server && node index.js"
+    "build:prod": "cd client && npm run build -- --mode production",
+    "start": "cd server && node index.js",
+    "start:prod": "cd server && NODE_ENV=production node index.js",
+    "lint": "cd client && npm run lint && cd ../server && npm run lint 2>/dev/null || true",
+    "format": "cd client && npm run format 2>/dev/null || true && cd ../server && npm run format 2>/dev/null || true",
+    "verify-env": "node scripts/verify-env.js",
+    "test": "echo \"Run tests from client or server directories\""
   },
   "keywords": [
     "react",
@@ -20,6 +26,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
   }
 }
