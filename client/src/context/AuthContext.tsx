@@ -1,4 +1,3 @@
-
 import {
   createContext,
   useContext,
@@ -69,17 +68,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const storedUser = localStorage.getItem("user");
         const token = localStorage.getItem("token");
 
-        if (!storedUser || !token) {
+        if (!token) {
           return null;
         }
 
-        // Set initial user from localStorage
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+        // 1. Set initial local user if available
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
 
-        // Verify token with backend
+        // 2. Verify token with backend - REMOVED leading slash
         const response = await api.get<{ success: boolean; user: User }>(
-          "/auth/me"
+          "auth/me" 
         );
 
         if (response.success) {
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     refetchOnWindowFocus: false,
   });
 
-  // Use mutations for login
+  // Use mutations for login - REMOVED leading slash
   const loginMutation = useMutation({
     mutationFn: async ({
       email,
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email: string;
       password: string;
     }) => {
-      return api.post<AuthResponse>("/auth/login", { email, password });
+      return api.post<AuthResponse>("auth/login", { email, password });
     },
     onSuccess: (response) => {
       if (response.success) {
@@ -120,7 +120,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast.success("Logged in successfully");
         queryClient.invalidateQueries({ queryKey: ["auth"] });
 
-        // Redirect based on user role
         if (response.user.role === "admin") {
           navigate("/admin/dashboard");
         } else {
@@ -129,15 +128,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     },
     onError: (error: any) => {
-      console.error("Login error:", error);
-      
       const errorMessage = error?.response?.data?.message || 
                           "Login failed. Please check your credentials.";
       toast.error(errorMessage);
     },
   });
 
-  // Use mutations for registration
+  // Use mutations for registration - REMOVED leading slash
   const registerMutation = useMutation({
     mutationFn: async ({
       name,
@@ -148,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email: string;
       password: string;
     }) => {
-      return api.post<AuthResponse>("/auth/register", {
+      return api.post<AuthResponse>("auth/register", {
         name,
         email,
         password,
@@ -162,7 +159,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast.success("Registration successful");
         queryClient.invalidateQueries({ queryKey: ["auth"] });
 
-        // Redirect based on user role
         if (response.user.role === "admin") {
           navigate("/admin/dashboard");
         } else {
@@ -171,40 +167,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     },
     onError: (error: any) => {
-      console.error("Registration error:", error);
-      
-      // Extract detailed error message
       const errorMessage = error?.response?.data?.message || 
-                          error?.response?.data?.errors?.[0]?.message ||
                           "Registration failed. Please try again.";
-      
-      // If there are validation errors, show them
-      if (error?.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-        const errors = error.response.data.errors;
-        errors.forEach((err: any) => {
-          toast.error(`${err.field}: ${err.message}`);
-        });
-      } else {
-        toast.error(errorMessage);
-      }
+      toast.error(errorMessage);
     },
   });
 
-  // Function to update user data in context and localStorage
   const updateUser = (userData: Partial<User>) => {
     setUser((prevUser) => {
       if (!prevUser) return null;
-      
       const updatedUser = { ...prevUser, ...userData };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       return updatedUser;
     });
   };
 
-  // Use mutations for Google login
+  // Google Login mutation - REMOVED leading slash
   const googleLoginMutation = useMutation({
     mutationFn: async (userData: GoogleUserData) => {
-      return api.post<AuthResponse>("/auth/google", userData);
+      return api.post<AuthResponse>("auth/google", userData);
     },
     onSuccess: (response) => {
       if (response.success) {
@@ -214,7 +195,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast.success("Google sign-in successful");
         queryClient.invalidateQueries({ queryKey: ["auth"] });
 
-        // Redirect based on user role
         if (response.user.role === "admin") {
           navigate("/admin/dashboard");
         } else {
@@ -223,7 +203,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     },
     onError: (error) => {
-      console.error("Google login error:", error);
       toast.error("Google sign-in failed. Please try again.");
     },
   });
