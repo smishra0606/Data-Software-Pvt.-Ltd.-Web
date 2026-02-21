@@ -1,38 +1,33 @@
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 
 const AuthSuccess = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const token = searchParams.get("token");
 
     if (token) {
-      // 1. Save the token exactly where your AuthContext looks for it
+      // 1. Clear everything first to be safe
+      localStorage.clear(); 
+      
+      // 2. Set the new token
       localStorage.setItem("token", token);
       
-      toast.success("Authentication successful!");
-
-      // 2. Small delay to ensure localStorage is registered 
-      // then redirect to dashboard
-      setTimeout(() => {
-        window.location.href = "/dashboard"; 
-        // Using window.location.href instead of navigate 
-        // forces the app to re-read the token on load.
-      }, 500);
-      
+      // 3. FORCE a hard reload to the dashboard
+      // This breaks the "redirect loop" by restarting the React app
+      window.location.assign("/dashboard");
     } else {
-      toast.error("Google login failed. Please try again.");
-      navigate("/login");
+      window.location.assign("/login");
     }
-  }, [searchParams, navigate]);
+  }, [searchParams]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
-      <p className="text-lg font-medium">Finalizing your login...</p>
+    <div className="flex items-center justify-center h-screen bg-background">
+      <div className="text-center">
+        <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+        <h2 className="text-xl font-semibold">Redirecting to Dashboard...</h2>
+      </div>
     </div>
   );
 };
