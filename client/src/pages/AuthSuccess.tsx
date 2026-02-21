@@ -8,26 +8,30 @@ const AuthSuccess = () => {
     const token = searchParams.get("token");
 
     if (token) {
-      // 1. Clear everything first to be safe
-      localStorage.clear(); 
-      
-      // 2. Set the new token
+      // 1. Try all common storage keys to be safe
       localStorage.setItem("token", token);
+      localStorage.setItem("userToken", token);
+      localStorage.setItem("authToken", token);
       
-      // 3. FORCE a hard reload to the dashboard
-      // This breaks the "redirect loop" by restarting the React app
-      window.location.assign("/dashboard");
+      // 2. Some apps require a 'user' object to consider someone 'logged in'
+      // We'll put a placeholder; your 'getMe' API call will update this later
+      const basicUser = JSON.stringify({ isAuthenticated: true });
+      localStorage.setItem("user", basicUser);
+      localStorage.setItem("authUser", basicUser);
+
+      // 3. Give the browser a tiny moment to breathe
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 100);
+      
     } else {
-      window.location.assign("/login");
+      window.location.href = "/login";
     }
   }, [searchParams]);
 
   return (
-    <div className="flex items-center justify-center h-screen bg-background">
-      <div className="text-center">
-        <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-        <h2 className="text-xl font-semibold">Redirecting to Dashboard...</h2>
-      </div>
+    <div className="flex items-center justify-center h-screen">
+      <p>Verifying session... please wait.</p>
     </div>
   );
 };
