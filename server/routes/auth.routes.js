@@ -1,4 +1,3 @@
-
 import express from "express";
 import { 
   register, 
@@ -12,17 +11,24 @@ import { protect } from "../middleware/auth.js";
 import {
   registerValidation,
   loginValidation,
-  googleAuthValidation,
   forgotPasswordValidation,
   resetPasswordValidation
 } from "../middleware/validation.js";
 
 const router = express.Router();
 
+// Public routes
 router.post("/register", registerValidation, register);
 router.post("/login", loginValidation, login);
-router.post("/google", googleAuthValidation, googleAuth);
+
+// Google Auth Route - Changed to GET for direct browser redirect
+// This allows window.location.href to work and bypasses CORS
+router.get("/google", googleAuth);
+
+// Protected routes
 router.get("/me", protect, getMe);
+
+// Password management
 router.post("/forgot-password", forgotPasswordValidation, forgotPassword);
 router.post("/reset-password", resetPasswordValidation, resetPassword);
 
